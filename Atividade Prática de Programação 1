@@ -1,0 +1,108 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define TAM_VETOR 100000000L
+#define VEZES 20
+
+typedef struct {
+    double tempo_ms;
+    long posicao;
+} ResultadoBusca;
+
+double calcular_ms(clock_t ini, clock_t fim) {
+    return ((double)(fim - ini)) * 1000.0 / CLOCKS_PER_SEC;
+}
+
+long busca_simples(long *arr, long tam, long chave) {
+    for (long i = 0; i < tam; i++) {
+        if (arr[i] == chave)
+            return i;
+    }
+    return -1;
+}
+
+long busca_divisao_iterativa(long *arr, long tam, long alvo) {
+    long baixo = 0, alto = tam - 1;
+    while (baixo <= alto) {
+        long meio = (baixo + alto) / 2;
+        if (arr[meio] == alvo)
+            return meio;
+        if (arr[meio] < alvo)
+            baixo = meio + 1;
+        else
+            alto = meio - 1;
+    }
+    return -1;
+}
+
+long busca_divisao_recursiva(long *arr, long ini, long fim, long alvo) {
+    if (ini > fim) return -1;
+    long mid = (ini + fim) / 2;
+    if (arr[mid] == alvo) return mid;
+    if (arr[mid] > alvo)
+        return busca_divisao_recursiva(arr, ini, mid - 1, alvo);
+    return busca_divisao_recursiva(arr, mid + 1, fim, alvo);
+}
+
+ResultadoBusca medir_execucao(long (*func)(long *, long, long), long *dados, long tam, long valor) {
+    ResultadoBusca r;
+    clock_t t0 = clock();
+    r.posicao = func(dados, tam, valor);
+    clock_t t1 = clock();
+    r.tempo_ms = calcular_ms(t0, t1);
+    return r;
+}
+
+ResultadoBusca medir_recursiva(long *dados, long tam, long valor) {
+    ResultadoBusca r;
+    clock_t t0 = clock();
+    r.posicao = busca_divisao_recursiva(dados, 0, tam - 1, valor);
+    clock_t t1 = clock();
+    r.tempo_ms = calcular_ms(t0, t1);
+    return r;
+}
+
+void testar_caso(long *base, long tam, long valor, const char *rotulo) {
+    ResultadoBusca r1 = medir_execucao(busca_simples, base, tam, valor);
+    ResultadoBusca r2 = medir_execucao(busca_divisao_iterativa, base, tam, valor);
+    ResultadoBusca r3 = medir_recursiva(base, tam, valor);
+
+    printf("\n%s\n", rotulo);
+    printf("Linear: índice = %ld | tempo = %.2f ms\n", r1.posicao, r1.tempo_ms);
+    printf("Binária iterativa: índice = %ld | tempo = %.2f ms\n", r2.posicao, r2.tempo_ms);
+    printf("Binária recursiva: índice = %ld | tempo = %.2f ms\n", r3.posicao, r3.tempo_ms);
+}
+
+int main() {
+    long *numeros = malloc(sizeof(long) * TAM_VETOR);
+    if (!numeros) {
+        fprintf(stderr, "Erro: memória insuficiente.\n");
+        return 1;
+    }
+
+    for (long i = 0; i < TAM_VETOR; i++)
+        numeros[i] = i;
+
+    testar_caso(numeros, TAM_VETOR, 0, "Melhor Caso (início)");
+    testar_caso(numeros, TAM_VETOR, TAM_VETOR - 1, "Pior Caso (fim)");
+    testar_caso(numeros, TAM_VETOR, -999, "Elemento ausente");
+
+    srand(time(NULL));
+    double t_lin = 0, t_it = 0, t_rec = 0;
+
+    for (int j = 0; j < VEZES; j++) {
+        long alvo = rand() % TAM_VETOR;
+        t_lin += medir_execucao(busca_simples, numeros, TAM_VETOR, alvo).tempo_ms;
+        t_it  += medir_execucao(busca_divisao_iterativa, numeros, TAM_VETOR, alvo).tempo_ms;
+        t_rec += medir_recursiva(numeros, TAM_VETOR, alvo).tempo_ms;
+    }
+
+    printf("\nCaso médio (%d execuções aleatórias)\n", VEZES);
+    printf("Linear: média = %.2f ms\n", t_lin / VEZES);
+    printf("Binária iterativa: média = %.2f ms\n", t_it / VEZES);
+    printf("Binária recursiva: média = %.2f ms\n", t_rec / VEZES);
+
+    free(numeros);
+    return 0;
+}
