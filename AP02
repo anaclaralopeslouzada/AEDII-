@@ -1,0 +1,127 @@
+/*
+  Nome: Ana Clara Lopes Louzada 
+  RA: 178.036
+  Disciplina: Algoritmos e Estruturas de Dados II
+  Descrição: Implementação dos algoritmos Selection Sort, Bubble Sort e Insertion Sort
+             com contagem de comparações e trocas, e parada antecipada quando o vetor
+             estiver ordenado.
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+
+// Estrutura para guardar número de comparações e trocas
+typedef struct {
+    int comp;
+    int troca;
+} Estat;
+
+// Função de comparação estilo qsort (não usada, mantida para variação)
+int cmp(const int *x, const int *y) {
+    return (*x > *y) - (*x < *y);
+}
+
+// Realiza troca entre dois elementos distintos e contabiliza
+void mover(int *x, int *y, Estat *e) {
+    if (x != y) {
+        int z = *x;
+        *x = *y;
+        *y = z;
+        e->troca++;
+    }
+}
+
+// Verifica se o vetor já está em ordem crescente
+int verificado(int *vet, int tam) {
+    for (int *p = vet + 1; p < vet + tam; ++p)
+        if (*(p - 1) > *p) return 0;
+    return 1;
+}
+
+// Algoritmo Selection Sort usando ponteiros
+Estat select_ord(int *v, int n) {
+    Estat r = {0, 0};
+    for (int a = 0; a < n - 1; ++a) {
+        int *p = v + a;
+        int *m = p;
+        for (int *q = p + 1; q < v + n; ++q) {
+            r.comp++;
+            if (*q < *m) m = q;
+        }
+        mover(p, m, &r);
+        if (verificado(v, n)) break;
+    }
+    return r;
+}
+
+// Algoritmo Bubble Sort com verificação de parada antecipada
+Estat borbulha(int *v, int n) {
+    Estat r = {0, 0};
+    int mudou = 1;
+    for (int limite = n; limite > 1 && mudou; --limite) {
+        mudou = 0;
+        for (int b = 0; b < limite - 1; ++b) {
+            r.comp++;
+            if (v[b] > v[b+1]) {
+                mover(&v[b], &v[b+1], &r);
+                mudou = 1;
+            }
+        }
+    }
+    return r;
+}
+
+// Algoritmo Insertion Sort com deslocamento e contagem de comparações
+Estat insere(int *v, int n) {
+    Estat r = {0, 0};
+    for (int i = 1; i < n; ++i) {
+        int temp = v[i];
+        int j = i;
+        for (; j > 0 && ++r.comp && v[j - 1] > temp; --j) {
+            v[j] = v[j - 1];
+            r.troca++;
+        }
+        if (j != i) {
+            v[j] = temp;
+            r.troca++;
+        }
+        if (verificado(v, n)) break;
+    }
+    return r;
+}
+
+// Função principal com leitura, cópias e chamadas dos algoritmos
+int main() {
+    int tamanho;
+    scanf("%d", &tamanho);
+
+    int *base = malloc(sizeof(int) * tamanho);
+    for (int i = 0; i < tamanho; ++i) scanf("%d", &base[i]);
+
+    int *copia = malloc(sizeof(int) * tamanho);
+    Estat est;
+
+    // SELECTION SORT
+    {
+        for (int i = 0; i < tamanho; ++i) copia[i] = base[i];
+        est = select_ord(copia, tamanho);
+        printf("%d %d\n", est.comp, est.troca);
+    }
+
+    // BUBBLE SORT
+    {
+        for (int i = 0; i < tamanho; ++i) copia[i] = base[i];
+        est = borbulha(copia, tamanho);
+        printf("%d %d\n", est.comp, est.troca);
+    }
+
+    // INSERTION SORT
+    {
+        for (int i = 0; i < tamanho; ++i) copia[i] = base[i];
+        est = insere(copia, tamanho);
+        printf("%d %d\n", est.comp, est.troca);
+    }
+    free(base);
+    free(copia);
+    return 0;
+}
